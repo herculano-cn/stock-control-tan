@@ -13,7 +13,6 @@ import {
   ArrowUpDown,
   ArrowUpRight,
   ArrowDownRight,
-  Filter,
   X,
 } from 'lucide-react'
 
@@ -92,9 +91,9 @@ function ProductsListPage() {
     }).format(val)
   }
 
-  const handleDelete = (p: Product) => {
+  const handleDelete = async (p: Product) => {
     if (window.confirm(`Tem certeza que deseja excluir o produto "${p.name}"?`)) {
-      deleteProduct(p.id)
+      await deleteProduct(p.id)
     }
   }
 

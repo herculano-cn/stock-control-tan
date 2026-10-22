@@ -59,7 +59,7 @@ function EditProductPage() {
     )
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
 
@@ -85,7 +85,7 @@ function EditProductPage() {
       return
     }
 
-    updateProduct(id, {
+    await updateProduct(id, {
       name: formData.name.trim(),
       description: formData.description.trim(),
       category: formData.category.trim(),
@@ -96,9 +96,9 @@ function EditProductPage() {
     navigate({ to: '/products' })
   }
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (window.confirm(`Tem certeza que deseja excluir o produto "${product.name}"?`)) {
-      deleteProduct(id)
+      await deleteProduct(id)
       navigate({ to: '/products' })
     }
   }

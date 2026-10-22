@@ -21,7 +21,7 @@ interface StockMovementModalProps {
     type: MovementType
     quantity: number
     reason: string
-  }) => { success: boolean; error?: string }
+  }) => { success: boolean; error?: string } | Promise<{ success: boolean; error?: string }>
 }
 
 export function StockMovementModal({
@@ -57,7 +57,7 @@ export function StockMovementModal({
 
   const isInsufficientStock = type === 'SAIDA' && parsedQty > currentStock
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
 
@@ -76,7 +76,7 @@ export function StockMovementModal({
       return
     }
 
-    const result = onConfirm({
+    const result = await onConfirm({
       productId,
       type,
       quantity: parsedQty,

@@ -3,11 +3,14 @@ import type { Product, Movement, StockSummary } from '../types/stock'
 import {
   getStoredProducts,
   getStoredMovements,
-  saveProducts,
-  saveMovements,
   computeStockSummary,
-  addMovementTransaction,
-  resetToSeedData,
+  fetchProductsApi,
+  fetchMovementsApi,
+  createProductApi,
+  updateProductApi,
+  deleteProductApi,
+  registerMovementApi,
+  resetDatabaseApi,
 } from '../services/stockService'
 
 export function useStock() {
@@ -15,108 +18,89 @@ export function useStock() {
   const [movements, setMovements] = useState<Movement[]>(() => getStoredMovements())
   const [isLoaded, setIsLoaded] = useState(false)
 
-  const reloadData = useCallback(() => {
-    setProducts(getStoredProducts())
-    setMovements(getStoredMovements())
+  const reloadData = useCallback(async () => {
+    try {
+      const [prods, movs] = await Promise.all([
+        fetchProductsApi(),
+        fetchMovementsApi(),
+      ])
+      setProducts(prods)
+      setMovements(movs)
+    } catch {
+      setProducts(getStoredProducts())
+      setMovements(getStoredMovements())
+    }
   }, [])
 
   useEffect(() => {
-    reloadData()
-    setIsLoaded(true)
+    reloadData().then(() => setIsLoaded(true))
 
-    const handleStorage = () => reloadData()
-    window.addEventListener('stockcontrol_data_change', handleStorage)
-    window.addEventListener('storage', handleStorage)
+    const handleStorage = () => {
+      setProducts(getStoredProducts())
+      setMovements(getStoredMovements())
+    }
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('stockcontrol_data_change', handleStorage)
+      window.addEventListener('storage', handleStorage)
+    }
 
     return () => {
-      window.removeEventListener('stockcontrol_data_change', handleStorage)
-      window.removeEventListener('storage', handleStorage)
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('stockcontrol_data_change', handleStorage)
+        window.removeEventListener('storage', handleStorage)
+      }
     }
   }, [reloadData])
 
   const summary: StockSummary = computeStockSummary(products)
 
   const addProduct = useCallback(
-    (productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => {
-      const now = new Date().toISOString()
-      const newProduct: Product = {
-        ...productData,
-        id: `prod-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-        createdAt: now,
-        updatedAt: now,
-      }
-
-      const updated = [newProduct, ...products]
-      saveProducts(updated)
-
-      // Registrar movimento de estoque inicial se > 0
-      if (newProduct.stockQuantity > 0) {
-        const initMov: Movement = {
-          id: `mov-${Date.now()}`,
-          productId: newProduct.id,
-          productName: newProduct.name,
-          type: 'ENTRADA',
-          quantity: newProduct.stockQuantity,
-          previousStock: 0,
-          newStock: newProduct.stockQuantity,
-          reason: 'Cadastro inicial do produto',
-          createdAt: now,
-        }
-        saveMovements([initMov, ...movements])
-      }
-
-      reloadData()
+    async (productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => {
+      const newProduct = await createProductApi(productData)
+      await reloadData()
       return newProduct
     },
-    [products, movements, reloadData]
+    [reloadData]
   )
 
   const updateProduct = useCallback(
-    (id: string, updates: Partial<Omit<Product, 'id' | 'createdAt'>>) => {
-      const index = products.findIndex((p) => p.id === id)
-      if (index === -1) return false
-
-      const current = products[index]
-      const now = new Date().toISOString()
-      const updatedProduct: Product = {
-        ...current,
-        ...updates,
-        updatedAt: now,
-      }
-
-      const copy = [...products]
-      copy[index] = updatedProduct
-      saveProducts(copy)
-      reloadData()
-      return true
+    async (id: string, updates: Partial<Omit<Product, 'id' | 'createdAt'>>) => {
+      const ok = await updateProductApi(id, updates)
+      await reloadData()
+      return ok
     },
-    [products, reloadData]
+    [reloadData]
   )
 
   const deleteProduct = useCallback(
-    (id: string) => {
-      const updated = products.filter((p) => p.id !== id)
-      saveProducts(updated)
-      reloadData()
-      return true
+    async (id: string) => {
+      const ok = await deleteProductApi(id)
+      await reloadData()
+      return ok
     },
-    [products, reloadData]
+    [reloadData]
   )
 
   const registerMovement = useCallback(
-    (params: { productId: string; type: 'ENTRADA' | 'SAIDA' | 'AJUSTE'; quantity: number; reason: string }) => {
-      const res = addMovementTransaction(params)
+    async (params: {
+      productId: string
+      type: 'ENTRADA' | 'SAIDA' | 'AJUSTE'
+      quantity: number
+      reason: string
+    }) => {
+      const res = await registerMovementApi(params)
       if (res.success) {
-        reloadData()
+        await reloadData()
       }
       return res
     },
     [reloadData]
   )
 
-  const resetAll = useCallback(() => {
-    resetToSeedData()
-    reloadData()
+  const resetAll = useCallback(async () => {
+    await resetDatabaseApi()
+    await reloadData()
   }, [reloadData])
 
   return {

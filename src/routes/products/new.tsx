@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router'
 import { useStock } from '../../context/useStock'
 import { useState } from 'react'
-import { ArrowLeft, Save, Package, DollarSign, Layers, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, Save, Package, Layers } from 'lucide-react'
 
 export const Route = createFileRoute('/products/new')({
   component: NewProductPage,
@@ -21,7 +21,7 @@ function NewProductPage() {
   })
   const [error, setError] = useState<string | null>(null)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
 
@@ -53,7 +53,7 @@ function NewProductPage() {
       return
     }
 
-    addProduct({
+    await addProduct({
       name: formData.name.trim(),
       description: formData.description.trim(),
       category: formData.category.trim(),

@@ -6,9 +6,7 @@ import {
   LayoutDashboard,
   Package,
   History,
-  AlertTriangle,
   RotateCcw,
-  Sparkles,
 } from 'lucide-react'
 
 export default function Header() {
@@ -126,9 +124,9 @@ export default function Header() {
 
             {/* Reset mock data */}
             <button
-              onClick={() => {
+              onClick={async () => {
                 if (window.confirm('Deseja restaurar os dados de demonstração originais do estoque?')) {
-                  resetAll()
+                  await resetAll()
                 }
               }}
               title="Restaurar dados de exemplo originais"

@@ -1,4 +1,4 @@
-import { Boxes, Heart } from 'lucide-react'
+import { Boxes } from 'lucide-react'
 
 export default function Footer() {
   return (

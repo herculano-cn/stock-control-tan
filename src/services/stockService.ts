@@ -130,16 +130,18 @@ export const INITIAL_MOVEMENTS: Movement[] = [
   },
 ]
 
-// In-memory cache for server-side or non-storage environments
+// In-memory cache for SSR / fallback
 let inMemoryProducts: Product[] = [...INITIAL_PRODUCTS]
 let inMemoryMovements: Movement[] = [...INITIAL_MOVEMENTS]
 
 function isBrowser(): boolean {
-  return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined'
+  return typeof window !== 'undefined'
 }
 
+/* ==================== LocalStorage Fallbacks ==================== */
+
 export function getStoredProducts(): Product[] {
-  if (!isBrowser()) {
+  if (!isBrowser() || typeof window.localStorage === 'undefined') {
     return inMemoryProducts
   }
 
@@ -158,7 +160,7 @@ export function getStoredProducts(): Product[] {
 
 export function saveProducts(products: Product[]): void {
   inMemoryProducts = products
-  if (isBrowser()) {
+  if (isBrowser() && typeof window.localStorage !== 'undefined') {
     try {
       window.localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(products))
       window.dispatchEvent(new Event('stockcontrol_data_change'))
@@ -169,7 +171,7 @@ export function saveProducts(products: Product[]): void {
 }
 
 export function getStoredMovements(): Movement[] {
-  if (!isBrowser()) {
+  if (!isBrowser() || typeof window.localStorage === 'undefined') {
     return inMemoryMovements
   }
 
@@ -188,7 +190,7 @@ export function getStoredMovements(): Movement[] {
 
 export function saveMovements(movements: Movement[]): void {
   inMemoryMovements = movements
-  if (isBrowser()) {
+  if (isBrowser() && typeof window.localStorage !== 'undefined') {
     try {
       window.localStorage.setItem(MOVEMENTS_STORAGE_KEY, JSON.stringify(movements))
       window.dispatchEvent(new Event('stockcontrol_data_change'))
@@ -221,6 +223,176 @@ export function computeStockSummary(products: Product[]): StockSummary {
     outOfStockCount,
     totalProducts: products.length,
   }
+}
+
+/* ==================== Backend REST API Calls (SQLite Persisted) ==================== */
+
+export async function fetchProductsApi(): Promise<Product[]> {
+  try {
+    const res = await fetch('/api/products')
+    if (!res.ok) throw new Error(`HTTP error ${res.status}`)
+    const data = await res.json()
+    saveProducts(data)
+    return data
+  } catch (e) {
+    console.warn('API /api/products unavailable, using fallback data:', e)
+    return getStoredProducts()
+  }
+}
+
+export async function fetchMovementsApi(): Promise<Movement[]> {
+  try {
+    const res = await fetch('/api/movements')
+    if (!res.ok) throw new Error(`HTTP error ${res.status}`)
+    const data = await res.json()
+    saveMovements(data)
+    return data
+  } catch (e) {
+    console.warn('API /api/movements unavailable, using fallback data:', e)
+    return getStoredMovements()
+  }
+}
+
+export async function fetchSummaryApi(): Promise<StockSummary> {
+  try {
+    const res = await fetch('/api/summary')
+    if (!res.ok) throw new Error(`HTTP error ${res.status}`)
+    return await res.json()
+  } catch (e) {
+    console.warn('API /api/summary unavailable, using fallback data:', e)
+    return computeStockSummary(getStoredProducts())
+  }
+}
+
+export async function createProductApi(
+  productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>
+): Promise<Product> {
+  try {
+    const res = await fetch('/api/products', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(productData),
+    })
+    if (!res.ok) throw new Error(`HTTP error ${res.status}`)
+    const newProduct = await res.json()
+    // Sync to local fallback
+    const current = getStoredProducts()
+    saveProducts([newProduct, ...current])
+    return newProduct
+  } catch (e) {
+    console.warn('API createProduct failed, falling back to local storage:', e)
+    const now = new Date().toISOString()
+    const fallbackProduct: Product = {
+      ...productData,
+      id: `prod-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      createdAt: now,
+      updatedAt: now,
+    }
+    const current = getStoredProducts()
+    saveProducts([fallbackProduct, ...current])
+    return fallbackProduct
+  }
+}
+
+export async function updateProductApi(
+  id: string,
+  updates: Partial<Omit<Product, 'id' | 'createdAt'>>
+): Promise<boolean> {
+  try {
+    const res = await fetch(`/api/products/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    })
+    if (!res.ok) throw new Error(`HTTP error ${res.status}`)
+    const updated = await res.json()
+    const current = getStoredProducts()
+    const index = current.findIndex((p) => p.id === id)
+    if (index !== -1) {
+      current[index] = updated
+      saveProducts([...current])
+    }
+    return true
+  } catch (e) {
+    console.warn('API updateProduct failed, falling back to local storage:', e)
+    const current = getStoredProducts()
+    const index = current.findIndex((p) => p.id === id)
+    if (index === -1) return false
+    const now = new Date().toISOString()
+    current[index] = { ...current[index], ...updates, updatedAt: now }
+    saveProducts([...current])
+    return true
+  }
+}
+
+export async function deleteProductApi(id: string): Promise<boolean> {
+  try {
+    const res = await fetch(`/api/products/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    })
+    if (!res.ok) throw new Error(`HTTP error ${res.status}`)
+    const current = getStoredProducts()
+    saveProducts(current.filter((p) => p.id !== id))
+    return true
+  } catch (e) {
+    console.warn('API deleteProduct failed, falling back to local storage:', e)
+    const current = getStoredProducts()
+    saveProducts(current.filter((p) => p.id !== id))
+    return true
+  }
+}
+
+export async function registerMovementApi(params: {
+  productId: string
+  type: MovementType
+  quantity: number
+  reason: string
+  notes?: string
+}): Promise<{ success: boolean; error?: string; product?: Product; movement?: Movement }> {
+  try {
+    const res = await fetch('/api/movements', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    })
+    const data = await res.json()
+    if (!res.ok || !data.success) {
+      return { success: false, error: data.error || 'Erro ao registrar movimentação' }
+    }
+
+    if (data.product) {
+      const prods = getStoredProducts()
+      const idx = prods.findIndex((p) => p.id === data.product.id)
+      if (idx !== -1) {
+        prods[idx] = data.product
+        saveProducts([...prods])
+      }
+    }
+    if (data.movement) {
+      const movs = getStoredMovements()
+      saveMovements([data.movement, ...movs])
+    }
+
+    return data
+  } catch (e: any) {
+    console.warn('API registerMovement failed, falling back to local storage:', e)
+    return addMovementTransaction(params)
+  }
+}
+
+export async function resetDatabaseApi(): Promise<void> {
+  try {
+    const res = await fetch('/api/reset-seed', { method: 'POST' })
+    if (res.ok) {
+      const data = await res.json()
+      if (data.products) saveProducts(data.products)
+      if (data.movements) saveMovements(data.movements)
+      return
+    }
+  } catch (e) {
+    console.warn('API reset-seed failed, falling back to local storage:', e)
+  }
+  resetToSeedData()
 }
 
 export function addMovementTransaction(params: {
@@ -262,7 +434,6 @@ export function addMovementTransaction(params: {
     }
     newQuantity = current.stockQuantity - qty
   } else if (params.type === 'AJUSTE') {
-    // Para ajuste / balanço, o valor informado é a nova contagem física direta
     newQuantity = qty
   }
 

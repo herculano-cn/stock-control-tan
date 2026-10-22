@@ -15,9 +15,6 @@ import {
   ArrowUpDown,
   History,
   TrendingUp,
-  AlertCircle,
-  Layers,
-  ArrowUpRight,
   ShieldCheck,
 } from 'lucide-react'
 

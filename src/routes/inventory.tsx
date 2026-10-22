@@ -15,7 +15,6 @@ import {
   CheckCircle2,
   AlertCircle,
   ClipboardList,
-  Filter,
 } from 'lucide-react'
 
 export const Route = createFileRoute('/inventory')({
@@ -43,7 +42,7 @@ function InventoryPage() {
 
   const selectedProductForAudit = products.find((p) => p.id === quickBalanceProdId)
 
-  const handleQuickBalanceSubmit = (e: React.FormEvent) => {
+  const handleQuickBalanceSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setQuickBalanceMsg(null)
 
@@ -58,7 +57,7 @@ function InventoryPage() {
       return
     }
 
-    const res = registerMovement({
+    const res = await registerMovement({
       productId: quickBalanceProdId,
       type: 'AJUSTE',
       quantity: qty,
