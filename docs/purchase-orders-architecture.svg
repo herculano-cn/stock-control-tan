@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="640" font-family="Arial, sans-serif" font-size="13">
+<defs><marker id="a" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 z" fill="#334155"/></marker></defs>
+<rect width="1100" height="640" fill="#f8fafc"/>
+<text x="550" y="28" text-anchor="middle" font-size="18" font-weight="bold" fill="#0f172a">StockControl - Ordens de Compra e Reposição Automática (arquitetura)</text>
+<!-- UI -->
+<rect x="20" y="50" width="330" height="560" rx="10" fill="#eef2ff" stroke="#6366f1"/>
+<text x="185" y="74" text-anchor="middle" font-weight="bold" fill="#3730a3">Frontend (React + TanStack Router)</text>
+<rect x="40" y="95" width="290" height="70" rx="6" fill="#fff" stroke="#6366f1"/>
+<text x="185" y="118" text-anchor="middle" font-weight="bold">routes/purchase-orders/index.tsx</text>
+<text x="185" y="138" text-anchor="middle">sugestões · novo pedido · lista · ações</text>
+<rect x="40" y="190" width="290" height="60" rx="6" fill="#fff" stroke="#6366f1"/>
+<text x="185" y="214" text-anchor="middle" font-weight="bold">services/stockService.ts</text>
+<text x="185" y="234" text-anchor="middle">fetch*/create*/updatePurchaseOrderStatusApi</text>
+<rect x="40" y="275" width="290" height="60" rx="6" fill="#fff" stroke="#6366f1"/>
+<text x="185" y="299" text-anchor="middle" font-weight="bold">context/useStock.ts</text>
+<text x="185" y="319" text-anchor="middle">reloadData() após RECEBIDA</text>
+<rect x="40" y="360" width="290" height="100" rx="6" fill="#fff" stroke="#6366f1"/>
+<text x="185" y="384" text-anchor="middle" font-weight="bold">Dashboard (/) · Inventário · Produtos · Header</text>
+<text x="185" y="406" text-anchor="middle">saldo, valor total e histórico de movimentos</text>
+<text x="185" y="426" text-anchor="middle">refletem o estoque atualizado</text>
+<text x="185" y="446" text-anchor="middle">imediatamente (mesmo useStock)</text>
+<rect x="40" y="485" width="290" height="40" rx="6" fill="#fff" stroke="#6366f1"/>
+<text x="185" y="510" text-anchor="middle">types/stock.ts (PurchaseOrder, Suggestion)</text>
+<!-- API -->
+<rect x="400" y="50" width="300" height="560" rx="10" fill="#ecfdf5" stroke="#10b981"/>
+<text x="550" y="74" text-anchor="middle" font-weight="bold" fill="#065f46">API REST (Express / Vite plugin)</text>
+<rect x="420" y="95" width="260" height="170" rx="6" fill="#fff" stroke="#10b981"/>
+<text x="550" y="118" text-anchor="middle" font-weight="bold">server/index.ts · apiPlugin.ts</text>
+<text x="436" y="145">GET  /api/purchase-orders</text>
+<text x="436" y="165">POST /api/purchase-orders</text>
+<text x="436" y="185">GET  /api/purchase-orders/:id</text>
+<text x="436" y="205">PUT  /api/purchase-orders/:id/status</text>
+<text x="436" y="225">GET  /api/purchase-orders/suggestions</text>
+<text x="436" y="250" fill="#64748b">400 validação · 404 não encontrado</text>
+<rect x="420" y="290" width="260" height="300" rx="6" fill="#fff" stroke="#10b981"/>
+<text x="550" y="313" text-anchor="middle" font-weight="bold">server/db.ts (regras de negócio)</text>
+<text x="436" y="340">createPurchaseOrder → nº sequencial,</text>
+<text x="436" y="358">  itens, total calculado (1 transação)</text>
+<text x="436" y="384">updatePurchaseOrderStatus</text>
+<text x="436" y="402">  RASCUNHO→CONFIRMADA→RECEBIDA</text>
+<text x="436" y="420">  RASCUNHO|CONFIRMADA→CANCELADA</text>
+<text x="436" y="446" font-weight="bold">  RECEBIDA (db.transaction):</text>
+<text x="436" y="464">  1. UPDATE guard status aberto</text>
+<text x="436" y="482">  2. UPDATE products.quantity</text>
+<text x="436" y="500">  3. INSERT movements (ENTRADA)</text>
+<text x="436" y="518">  erro → ROLLBACK total</text>
+<text x="436" y="544">getReplenishmentSuggestions</text>
+<text x="436" y="562">  saldo ≤ mínimo → 2×mín − saldo (≥1)</text>
+<!-- DB -->
+<rect x="750" y="50" width="330" height="560" rx="10" fill="#fff7ed" stroke="#f97316"/>
+<text x="915" y="74" text-anchor="middle" font-weight="bold" fill="#9a3412">SQLite (better-sqlite3 · data/stock.db)</text>
+<rect x="770" y="95" width="290" height="110" rx="6" fill="#fff" stroke="#f97316"/>
+<text x="915" y="118" text-anchor="middle" font-weight="bold">purchase_orders</text>
+<text x="786" y="140">id, number (UNIQUE, sequencial)</text>
+<text x="786" y="158">supplier, status, notes, total</text>
+<text x="786" y="176">created_at, updated_at, received_at</text>
+<rect x="770" y="230" width="290" height="100" rx="6" fill="#fff" stroke="#f97316"/>
+<text x="915" y="253" text-anchor="middle" font-weight="bold">purchase_order_items</text>
+<text x="786" y="275">id, order_id → purchase_orders.id</text>
+<text x="786" y="293">product_id, product_name</text>
+<text x="786" y="311">quantity, unit_price</text>
+<rect x="770" y="355" width="290" height="80" rx="6" fill="#fff" stroke="#f97316"/>
+<text x="915" y="378" text-anchor="middle" font-weight="bold">products (existente)</text>
+<text x="786" y="400">quantity ↑ no recebimento</text>
+<text x="786" y="418">valor total = Σ price × quantity</text>
+<rect x="770" y="460" width="290" height="80" rx="6" fill="#fff" stroke="#f97316"/>
+<text x="915" y="483" text-anchor="middle" font-weight="bold">movements (existente)</text>
+<text x="786" y="505">type=ENTRADA, previous/new qty</text>
+<text x="786" y="523">reason="Recebimento OC-000N"</text>
+<!-- arrows -->
+<path d="M330 125 L420 150" stroke="#334155" stroke-width="2" marker-end="url(#a)" fill="none"/>
+<path d="M550 265 L550 290" stroke="#334155" stroke-width="2" marker-end="url(#a)" fill="none"/>
+<path d="M680 400 L770 150" stroke="#334155" stroke-width="2" marker-end="url(#a)" fill="none"/>
+<path d="M680 440 L770 395" stroke="#334155" stroke-width="2" marker-end="url(#a)" fill="none"/>
+<path d="M680 470 L770 500" stroke="#334155" stroke-width="2" marker-end="url(#a)" fill="none"/>
+<path d="M420 575 L330 420" stroke="#334155" stroke-width="2" stroke-dasharray="5,4" marker-end="url(#a)" fill="none"/>
+<text x="40" y="560" fill="#64748b">← JSON (reloadData)</text>
+</svg>

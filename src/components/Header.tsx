@@ -7,6 +7,7 @@ import {
   Package,
   History,
   RotateCcw,
+  ShoppingCart,
 } from 'lucide-react'
 
 export default function Header() {
@@ -81,6 +82,17 @@ export default function Header() {
               >
                 <History className="w-4 h-4" />
                 <span>Inventário & Auditoria</span>
+              </Link>
+              <Link
+                to="/purchase-orders"
+                className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors"
+                activeProps={{
+                  className:
+                    'flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50/80 dark:bg-indigo-950/50 transition-colors',
+                }}
+              >
+                <ShoppingCart className="w-4 h-4" />
+                <span>Compras</span>
               </Link>
             </nav>
           </div>
@@ -172,6 +184,16 @@ export default function Header() {
           >
             <History className="w-4 h-4" />
             <span>Inventário</span>
+          </Link>
+          <Link
+            to="/purchase-orders"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium text-slate-600 dark:text-slate-300"
+            activeProps={{
+              className: 'font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40',
+            }}
+          >
+            <ShoppingCart className="w-4 h-4" />
+            <span>Compras</span>
           </Link>
         </div>
       </div>

@@ -10,6 +10,11 @@ import {
   recordMovementTransaction,
   getStockSummaryFromDb,
   seedDatabase,
+  getAllPurchaseOrders,
+  getPurchaseOrderById,
+  createPurchaseOrder,
+  updatePurchaseOrderStatus,
+  getReplenishmentSuggestions,
 } from './db'
 
 function parseJsonBody(req: IncomingMessage): Promise<any> {
@@ -123,6 +128,50 @@ export function stockApiPlugin(): Plugin {
       if (pathname === '/api/summary' && method === 'GET') {
         const summary = getStockSummaryFromDb()
         return sendJson(res, 200, summary)
+      }
+
+      // GET /api/purchase-orders/suggestions
+      if (pathname === '/api/purchase-orders/suggestions' && method === 'GET') {
+        return sendJson(res, 200, getReplenishmentSuggestions())
+      }
+
+      // GET /api/purchase-orders
+      if (pathname === '/api/purchase-orders' && method === 'GET') {
+        return sendJson(res, 200, getAllPurchaseOrders())
+      }
+
+      // POST /api/purchase-orders
+      if (pathname === '/api/purchase-orders' && method === 'POST') {
+        const body = await parseJsonBody(req)
+        const result = createPurchaseOrder(body)
+        if (!result.success) {
+          return sendJson(res, 400, result)
+        }
+        return sendJson(res, 201, result.order)
+      }
+
+      // PUT /api/purchase-orders/:id/status
+      const poStatusMatch = pathname.match(/^\/api\/purchase-orders\/([^\/]+)\/status$/)
+      if (poStatusMatch && method === 'PUT') {
+        const body = await parseJsonBody(req)
+        const result = updatePurchaseOrderStatus(decodeURIComponent(poStatusMatch[1]), body.status)
+        if (result.notFound) {
+          return sendJson(res, 404, result)
+        }
+        if (!result.success) {
+          return sendJson(res, 400, result)
+        }
+        return sendJson(res, 200, result.order)
+      }
+
+      // GET /api/purchase-orders/:id
+      const poMatch = pathname.match(/^\/api\/purchase-orders\/([^\/]+)$/)
+      if (poMatch && method === 'GET') {
+        const order = getPurchaseOrderById(decodeURIComponent(poMatch[1]))
+        if (!order) {
+          return sendJson(res, 404, { error: 'Pedido não encontrado' })
+        }
+        return sendJson(res, 200, order)
       }
 
       // POST /api/reset-seed
