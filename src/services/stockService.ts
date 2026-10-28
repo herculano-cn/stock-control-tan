@@ -1,4 +1,13 @@
-import type { Product, Movement, MovementType, StockSummary } from '../types/stock'
+import type {
+  Product,
+  Movement,
+  MovementType,
+  StockSummary,
+  PurchaseOrder,
+  PurchaseOrderInput,
+  PurchaseOrderStatus,
+  ReplenishmentSuggestion,
+} from '../types/stock'
 
 const PRODUCTS_STORAGE_KEY = 'stockcontrol_products_v1'
 const MOVEMENTS_STORAGE_KEY = 'stockcontrol_movements_v1'
@@ -377,6 +386,55 @@ export async function registerMovementApi(params: {
   } catch (e: any) {
     console.warn('API registerMovement failed, falling back to local storage:', e)
     return addMovementTransaction(params)
+  }
+}
+
+/* ==================== Purchase Orders API ==================== */
+
+export async function fetchPurchaseOrdersApi(): Promise<PurchaseOrder[]> {
+  const res = await fetch('/api/purchase-orders')
+  if (!res.ok) throw new Error(`HTTP error ${res.status}`)
+  return res.json()
+}
+
+export async function fetchSuggestionsApi(): Promise<ReplenishmentSuggestion[]> {
+  const res = await fetch('/api/purchase-orders/suggestions')
+  if (!res.ok) throw new Error(`HTTP error ${res.status}`)
+  return res.json()
+}
+
+export async function createPurchaseOrderApi(
+  input: PurchaseOrderInput
+): Promise<{ success: boolean; error?: string; order?: PurchaseOrder }> {
+  try {
+    const res = await fetch('/api/purchase-orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    })
+    const data = await res.json()
+    if (!res.ok) return { success: false, error: data.error || 'Erro ao criar pedido' }
+    return { success: true, order: data }
+  } catch (e: any) {
+    return { success: false, error: e?.message || 'Servidor indisponível' }
+  }
+}
+
+export async function updatePurchaseOrderStatusApi(
+  id: string,
+  status: PurchaseOrderStatus
+): Promise<{ success: boolean; error?: string; order?: PurchaseOrder }> {
+  try {
+    const res = await fetch(`/api/purchase-orders/${encodeURIComponent(id)}/status`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    })
+    const data = await res.json()
+    if (!res.ok) return { success: false, error: data.error || 'Erro ao atualizar status' }
+    return { success: true, order: data }
+  } catch (e: any) {
+    return { success: false, error: e?.message || 'Servidor indisponível' }
   }
 }
 

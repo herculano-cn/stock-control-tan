@@ -10,6 +10,11 @@ import {
   recordMovementTransaction,
   getStockSummaryFromDb,
   seedDatabase,
+  getAllPurchaseOrders,
+  getPurchaseOrderById,
+  createPurchaseOrder,
+  updatePurchaseOrderStatus,
+  getReplenishmentSuggestions,
 } from './db'
 
 export function createApiRouter() {
@@ -117,6 +122,66 @@ export function createApiRouter() {
     try {
       const summary = getStockSummaryFromDb()
       res.json(summary)
+    } catch (err: any) {
+      res.status(500).json({ error: err.message })
+    }
+  })
+
+  // GET /api/purchase-orders/suggestions (must be declared before /:id)
+  router.get('/purchase-orders/suggestions', (_req, res) => {
+    try {
+      res.json(getReplenishmentSuggestions())
+    } catch (err: any) {
+      res.status(500).json({ error: err.message })
+    }
+  })
+
+  // GET /api/purchase-orders
+  router.get('/purchase-orders', (_req, res) => {
+    try {
+      res.json(getAllPurchaseOrders())
+    } catch (err: any) {
+      res.status(500).json({ error: err.message })
+    }
+  })
+
+  // POST /api/purchase-orders
+  router.post('/purchase-orders', (req, res) => {
+    try {
+      const result = createPurchaseOrder(req.body || {})
+      if (!result.success) {
+        return res.status(400).json(result)
+      }
+      res.status(201).json(result.order)
+    } catch (err: any) {
+      res.status(500).json({ error: err.message })
+    }
+  })
+
+  // GET /api/purchase-orders/:id
+  router.get('/purchase-orders/:id', (req, res) => {
+    try {
+      const order = getPurchaseOrderById(req.params.id)
+      if (!order) {
+        return res.status(404).json({ error: 'Pedido não encontrado' })
+      }
+      res.json(order)
+    } catch (err: any) {
+      res.status(500).json({ error: err.message })
+    }
+  })
+
+  // PUT /api/purchase-orders/:id/status
+  router.put('/purchase-orders/:id/status', (req, res) => {
+    try {
+      const result = updatePurchaseOrderStatus(req.params.id, req.body?.status)
+      if (result.notFound) {
+        return res.status(404).json(result)
+      }
+      if (!result.success) {
+        return res.status(400).json(result)
+      }
+      res.json(result.order)
     } catch (err: any) {
       res.status(500).json({ error: err.message })
     }
