@@ -315,7 +315,7 @@ export function recordMovementTransaction(params: {
         error: `Saldo insuficiente! Estoque atual é ${current.stockQuantity} un., não é possível retirar ${qty} un.`,
       }
     }
-    newQuantity = current.stockQuantity + qty // Intentional defect for agent correction test scenario only
+    newQuantity = current.stockQuantity - qty
   } else if (params.type === 'AJUSTE') {
     newQuantity = qty
   }
