@@ -1,4 +1,4 @@
-import type { Product, Movement, MovementType, StockSummary } from '../types/stock'
+import type { Product, Movement, MovementType, StockSummary, Order } from '../types/stock'
 
 const PRODUCTS_STORAGE_KEY = 'stockcontrol_products_v1'
 const MOVEMENTS_STORAGE_KEY = 'stockcontrol_movements_v1'
@@ -468,4 +468,18 @@ export function addMovementTransaction(params: {
 export function resetToSeedData(): void {
   saveProducts(INITIAL_PRODUCTS)
   saveMovements(INITIAL_MOVEMENTS)
+}
+
+export async function fetchOrderApi(id: string): Promise<Order | null> {
+  const res = await fetch(`/api/orders/${encodeURIComponent(id.trim())}`)
+  if (res.status === 404) return null
+  if (!res.ok) throw new Error(`HTTP error ${res.status}`)
+  return res.json()
+}
+
+export async function advanceOrderApi(id: string): Promise<Order | null> {
+  const res = await fetch(`/api/orders/${encodeURIComponent(id)}/advance`, { method: 'POST' })
+  if (res.status === 404) return null
+  if (!res.ok) throw new Error(`HTTP error ${res.status}`)
+  return res.json()
 }

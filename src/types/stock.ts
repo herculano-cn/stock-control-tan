@@ -31,3 +31,21 @@ export interface StockSummary {
   outOfStockCount: number
   totalProducts: number
 }
+
+export const ORDER_STATUSES = [
+  'Pedido confirmado',
+  'Em separação',
+  'Em transporte',
+  'Entregue',
+] as const
+
+export type OrderStatus = (typeof ORDER_STATUSES)[number]
+
+export interface Order {
+  id: string
+  customer: string
+  statusIndex: number
+  status: OrderStatus
+  createdAt: string
+  updatedAt: string
+}

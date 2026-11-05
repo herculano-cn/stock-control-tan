@@ -66,3 +66,23 @@ describe('recordMovementTransaction', () => {
     expect(r.movement?.quantity).toBe(8)
   })
 })
+
+describe('orders', () => {
+  it('seeds CS-2048 at the first step', () => {
+    const o = db.getOrderById('CS-2048')
+    expect(o?.status).toBe('Pedido confirmado')
+    expect(o?.statusIndex).toBe(0)
+  })
+
+  it('returns null for an unknown order', () => {
+    expect(db.getOrderById('NAO-EXISTE')).toBeNull()
+    expect(db.advanceOrderStatus('NAO-EXISTE')).toBeNull()
+  })
+
+  it('advances through the timeline and wraps at the end', () => {
+    db.seedDatabase()
+    const seen = [1, 2, 3, 4].map(() => db.advanceOrderStatus('CS-2048')?.status)
+    expect(seen).toEqual(['Em separação', 'Em transporte', 'Entregue', 'Pedido confirmado'])
+    expect(db.getOrderById('cs-2048')?.statusIndex).toBe(0)
+  })
+})
