@@ -1,7 +1,8 @@
 import Database from 'better-sqlite3'
 import path from 'node:path'
 import fs from 'node:fs'
-import type { Product, Movement, StockSummary } from '../types/stock'
+import type { Product, Movement, StockSummary, Order } from '../types/stock'
+import { ORDER_STATUSES } from '../types/stock'
 import { INITIAL_PRODUCTS, INITIAL_MOVEMENTS } from '../services/stockService'
 
 const DB_DIR = path.resolve(process.cwd(), 'data')
@@ -46,6 +47,14 @@ export function getDatabase(): InstanceType<typeof Database> {
       notes TEXT,
       created_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS orders (
+      id TEXT PRIMARY KEY,
+      customer TEXT NOT NULL,
+      status_index INTEGER NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
   `)
 
   // Check if seed needed
@@ -54,8 +63,22 @@ export function getDatabase(): InstanceType<typeof Database> {
     seedDatabase(db)
   }
 
+  seedOrders(db, false)
+
   dbInstance = db
   return dbInstance
+}
+
+export function seedOrders(db: InstanceType<typeof Database>, force: boolean) {
+  const countRow = db.prepare('SELECT COUNT(*) as count FROM orders').get() as { count: number }
+  if (!force && countRow.count > 0) return
+  const now = new Date().toISOString()
+  db.transaction(() => {
+    db.prepare('DELETE FROM orders').run()
+    db.prepare(
+      'INSERT INTO orders (id, customer, status_index, created_at, updated_at) VALUES (?, ?, ?, ?, ?)'
+    ).run('CS-2048', 'Cliente Store 360', 0, now, now)
+  })()
 }
 
 export function seedDatabase(db: InstanceType<typeof Database> = getDatabase()) {
@@ -72,6 +95,7 @@ export function seedDatabase(db: InstanceType<typeof Database> = getDatabase()) 
   const transaction = db.transaction(() => {
     db.prepare('DELETE FROM movements').run()
     db.prepare('DELETE FROM products').run()
+    seedOrders(db, true)
 
     for (const p of INITIAL_PRODUCTS) {
       insertProduct.run(
@@ -395,4 +419,48 @@ export function getStockSummaryFromDb(): StockSummary {
     outOfStockCount,
     totalProducts: products.length,
   }
+}
+
+type OrderRow = {
+  id: string
+  customer: string
+  status_index: number
+  created_at: string
+  updated_at: string
+}
+
+function mapOrder(r: OrderRow): Order {
+  return {
+    id: r.id,
+    customer: r.customer,
+    statusIndex: r.status_index,
+    status: ORDER_STATUSES[r.status_index],
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  }
+}
+
+function normalizeOrderId(id: string): string {
+  return String(id ?? '').trim().toUpperCase()
+}
+
+export function getOrderById(id: string): Order | null {
+  const db = getDatabase()
+  const r = db.prepare('SELECT * FROM orders WHERE id = ?').get(normalizeOrderId(id)) as
+    | OrderRow
+    | undefined
+  return r ? mapOrder(r) : null
+}
+
+// Advances the order to the next timeline step; after the last step it wraps
+// back to the first one.
+export function advanceOrderStatus(id: string): Order | null {
+  const db = getDatabase()
+  const orderId = normalizeOrderId(id)
+  const current = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId) as OrderRow | undefined
+  if (!current) return null
+  const next = (current.status_index + 1) % ORDER_STATUSES.length
+  const now = new Date().toISOString()
+  db.prepare('UPDATE orders SET status_index = ?, updated_at = ? WHERE id = ?').run(next, now, orderId)
+  return mapOrder({ ...current, status_index: next, updated_at: now })
 }

@@ -10,6 +10,8 @@ import {
   recordMovementTransaction,
   getStockSummaryFromDb,
   seedDatabase,
+  getOrderById,
+  advanceOrderStatus,
 } from './db'
 
 export function createApiRouter() {
@@ -117,6 +119,32 @@ export function createApiRouter() {
     try {
       const summary = getStockSummaryFromDb()
       res.json(summary)
+    } catch (err: any) {
+      res.status(500).json({ error: err.message })
+    }
+  })
+
+  // GET /api/orders/:id
+  router.get('/orders/:id', (req, res) => {
+    try {
+      const order = getOrderById(req.params.id)
+      if (!order) {
+        return res.status(404).json({ error: 'Pedido não encontrado' })
+      }
+      res.json(order)
+    } catch (err: any) {
+      res.status(500).json({ error: err.message })
+    }
+  })
+
+  // POST /api/orders/:id/advance
+  router.post('/orders/:id/advance', (req, res) => {
+    try {
+      const order = advanceOrderStatus(req.params.id)
+      if (!order) {
+        return res.status(404).json({ error: 'Pedido não encontrado' })
+      }
+      res.json(order)
     } catch (err: any) {
       res.status(500).json({ error: err.message })
     }

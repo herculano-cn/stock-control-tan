@@ -10,6 +10,8 @@ import {
   recordMovementTransaction,
   getStockSummaryFromDb,
   seedDatabase,
+  getOrderById,
+  advanceOrderStatus,
 } from './db'
 
 function parseJsonBody(req: IncomingMessage): Promise<any> {
@@ -123,6 +125,26 @@ export function stockApiPlugin(): Plugin {
       if (pathname === '/api/summary' && method === 'GET') {
         const summary = getStockSummaryFromDb()
         return sendJson(res, 200, summary)
+      }
+
+      // GET /api/orders/:id
+      const orderMatch = pathname.match(/^\/api\/orders\/([^\/]+)$/)
+      if (orderMatch && method === 'GET') {
+        const order = getOrderById(decodeURIComponent(orderMatch[1]))
+        if (!order) {
+          return sendJson(res, 404, { error: 'Pedido não encontrado' })
+        }
+        return sendJson(res, 200, order)
+      }
+
+      // POST /api/orders/:id/advance
+      const advanceMatch = pathname.match(/^\/api\/orders\/([^\/]+)\/advance$/)
+      if (advanceMatch && method === 'POST') {
+        const order = advanceOrderStatus(decodeURIComponent(advanceMatch[1]))
+        if (!order) {
+          return sendJson(res, 404, { error: 'Pedido não encontrado' })
+        }
+        return sendJson(res, 200, order)
       }
 
       // POST /api/reset-seed

@@ -2,6 +2,7 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { useStock } from '../context/useStock'
 import { StockBadge } from '../components/StockBadge'
 import { MovementTypeBadge } from '../components/MovementTypeBadge'
+import { OrderTracking } from '../components/OrderTracking'
 import { StockMovementModal } from '../components/StockMovementModal'
 import { useState } from 'react'
 import type { Product } from '../types/stock'
@@ -117,6 +118,9 @@ function DashboardPage() {
           </div>
         </div>
       </section>
+
+      {/* Order tracking */}
+      <OrderTracking />
 
       {/* KPI Metric Cards */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
