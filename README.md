@@ -21,7 +21,7 @@ Aplicação web para controle de estoque: permite manter um catálogo de produto
 
 ## Pré-requisitos
 
-- Node.js 22.12.0 ou superior (ou 23.5.0 ou superior): o `better-sqlite3` registrado no lockfile requer Node.js `>=22`, e o Vite registrado requer `^20.19.0 || >=22.12.0`. Considerando ambas as dependências, Node.js 22 precisa ser ao menos 22.12.0.
+- Node.js 22.12.0 ou superior: no `package-lock.json`, `better-sqlite3` 13.0.3 declara Node.js `>=22`, o Vite declara `^20.19.0 || >=22.12.0`, e os pacotes TanStack Start declaram `>=22.12.0`. Considerando esses requisitos, a versão mínima comum é Node.js 22.12.0; a linha 20.x aceita pelo Vite, isoladamente, não atende aos requisitos dos demais pacotes.
 - Um ambiente compatível com o módulo nativo do `better-sqlite3`. Se não houver um binário compatível disponível para a plataforma, a instalação pode depender de ferramentas de compilação nativa; os requisitos específicos variam por sistema e não estão fixados neste repositório.
 - npm para usar o comando de instalação mostrado abaixo. O clone contém `package-lock.json` (lockfile v3), mas não contém `pnpm-lock.yaml`. Além disso, o lockfile npm não lista Vitest, embora `package.json` o declare. Portanto, o lockfile está dessincronizado e a instalação reproduzível ainda está pendente; `npm ci` pode falhar. Embora `package.json` configure `pnpm.onlyBuiltDependencies`, isso não fixa versões pelo pnpm nem constitui lockfile. Os comandos `pnpm` abaixo pressupõem que pnpm esteja instalado.
 
