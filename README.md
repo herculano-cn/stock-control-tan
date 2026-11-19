@@ -1,187 +1,85 @@
-Welcome to your new TanStack Start app!
+# StockControl
 
-# Getting Started
+Sistema web para controle de estoque. Cadastre produtos, acompanhe saldos e alertas, registre movimentações e consulte o histórico de inventário.
 
-To run this application:
+## Requisitos
+
+- Node.js **22.12.0 ou superior**. No `package-lock.json`, `better-sqlite3` 13.0.3 declara Node.js `>=22`, o Vite aceita `^20.19.0 || >=22.12.0`, e os pacotes TanStack Start requerem `>=22.12.0`; o mínimo comum é 22.12.0.
+- npm para instalar as dependências conforme o lockfile disponível.
+- Um ambiente compatível com o módulo nativo `better-sqlite3`. Se não houver binário compatível com a plataforma, poderá ser necessário compilar o módulo nativo.
+
+## Instalar dependências
+
+Na raiz do projeto:
 
 ```bash
-npm install
+npm install --package-lock=false
+```
+
+O repositório contém `package-lock.json`, mas ele não inclui Vitest, declarado em `package.json`, e não há `pnpm-lock.yaml`. Por isso, a instalação reproduzível ainda está pendente: `npm ci` pode falhar e o comando acima evita modificar o lockfile, mas resolve as dependências sem reproduzi-las integralmente. O projeto configura `pnpm.onlyBuiltDependencies`, porém essa configuração não equivale a um lockfile. Para usar os comandos `pnpm` abaixo, pnpm deve estar instalado e as dependências necessárias presentes.
+
+Não há variáveis de ambiente obrigatórias documentadas para desenvolvimento. O servidor SQLite cria automaticamente `data/stock.db` no diretório atual quando a API é usada.
+
+## Rodar a aplicação
+
+### Desenvolvimento
+
+```bash
 npm run dev
 ```
 
-# Building For Production
+Esse script executa `vite dev --port 3001`. Abra `http://localhost:3001` no navegador. O plugin `stockApiPlugin()` registrado em `vite.config.ts` fornece a API de estoque no servidor de desenvolvimento.
 
-To build this application for production:
+### Build e preview
+
+Gere a build:
 
 ```bash
 npm run build
 ```
 
-## Styling
+Para servir a build usando o preview do Vite:
 
-This project uses [Tailwind CSS](https://tailwindcss.com/) for styling.
-
-### Removing Tailwind CSS
-
-If you prefer not to use Tailwind CSS:
-
-1. Remove the demo pages in `src/routes/demo/`
-2. Replace the Tailwind import in `src/styles.css` with your own styles
-3. Remove `tailwindcss()` from the plugins array in `vite.config.ts`
-4. Remove `@tailwindcss/vite` and `tailwindcss` from `package.json`
-
-
-
-## Routing
-
-This project uses [TanStack Router](https://tanstack.com/router) with file-based routing. Routes are managed as files in `src/routes`.
-
-### Adding A Route
-
-To add a new route to your application just add a new file in the `./src/routes` directory.
-
-TanStack will automatically generate the content of the route file for you.
-
-Now that you have two routes you can use a `Link` component to navigate between them.
-
-### Adding Links
-
-To use SPA (Single Page Application) navigation you will need to import the `Link` component from `@tanstack/react-router`.
-
-```tsx
-import { Link } from "@tanstack/react-router";
+```bash
+npm run preview
 ```
 
-Then anywhere in your JSX you can use it like so:
+O preview usa `vite preview` e também registra a API interna pelo plugin. É uma forma de pré-visualizar a build, distinta do servidor Express iniciado pelo script `start`.
 
-```tsx
-<Link to="/about">About</Link>
+### Início pelo servidor Express
+
+Depois de gerar a build com `npm run build`, execute:
+
+```bash
+npm start
 ```
 
-This will create a link that will navigate to the `/about` route.
+O script chama `node server.js`, que serve `dist/client` e monta as rotas Express da API. O servidor usa `PORT` se essa variável estiver definida; caso contrário, escuta na porta `3001`. A disponibilidade de uma configuração de implantação além desse servidor não está documentada neste repositório.
 
-More information on the `Link` component can be found in the [Link documentation](https://tanstack.com/router/v1/docs/framework/react/api/router/linkComponent).
+## Rodar os testes
 
-### Using A Layout
+O script `test` do `package.json` executa `vitest run`. O comando solicitado para rodar a suíte é:
 
-In the File Based Routing setup the layout is located in `src/routes/__root.tsx`. Anything you add to the root route will appear in all the routes. The route content will appear in the JSX where you render `{children}` in the `shellComponent`.
-
-Here is an example layout that includes a header:
-
-```tsx
-import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
-
-export const Route = createRootRoute({
-  head: () => ({
-    meta: [
-      { charSet: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'My App' },
-    ],
-  }),
-  shellComponent: ({ children }) => (
-    <html lang="en">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        <header>
-          <nav>
-            <Link to="/">Home</Link>
-            <Link to="/about">About</Link>
-          </nav>
-        </header>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  ),
-})
+```bash
+pnpm test
 ```
 
-More information on layouts can be found in the [Layouts documentation](https://tanstack.com/router/latest/docs/framework/react/guide/routing-concepts#layouts).
+O repositório não inclui `pnpm-lock.yaml`; portanto, esse comando executa o script configurado, mas não fixa por lockfile a resolução das dependências. Como alternativa, se Vitest foi instalado no projeto usando npm:
 
-## Server Functions
-
-TanStack Start provides server functions that allow you to write server-side code that seamlessly integrates with your client components.
-
-```tsx
-import { createServerFn } from '@tanstack/react-start'
-
-const getServerTime = createServerFn({
-  method: 'GET',
-}).handler(async () => {
-  return new Date().toISOString()
-})
-
-// Use in a component
-function MyComponent() {
-  const [time, setTime] = useState('')
-  
-  useEffect(() => {
-    getServerTime().then(setTime)
-  }, [])
-  
-  return <div>Server time: {time}</div>
-}
+```bash
+npm test
 ```
 
-## API Routes
+O teste `src/server/db.test.ts` verifica transações de estoque: entrada, saída, rejeição de saída acima do saldo sem alterar o estoque, saída que zera o saldo e ajuste para a quantidade contada. Os testes usam SQLite em diretório temporário e precisam carregar o módulo nativo `better-sqlite3`.
 
-You can create API routes by using the `server` property in your route definitions:
+Quando Vitest termina com sucesso, o processo retorna código de saída zero e não reporta testes falhos. Em caso de falha, verifique as asserções e o erro apresentado no terminal; erro ao carregar `better-sqlite3` indica que o módulo nativo não está disponível ou compatível com o ambiente. Os testes não foram executados ao preparar este README.
 
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-import { json } from '@tanstack/react-start'
+## Scripts disponíveis
 
-export const Route = createFileRoute('/api/hello')({
-  server: {
-    handlers: {
-      GET: () => json({ message: 'Hello, World!' }),
-    },
-  },
-})
-```
-
-## Data Fetching
-
-There are multiple ways to fetch data in your application. You can use TanStack Query to fetch data from a server. But you can also use the `loader` functionality built into TanStack Router to load the data for a route before it's rendered.
-
-For example:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-
-export const Route = createFileRoute('/people')({
-  loader: async () => {
-    const response = await fetch('https://swapi.dev/api/people')
-    return response.json()
-  },
-  component: PeopleComponent,
-})
-
-function PeopleComponent() {
-  const data = Route.useLoaderData()
-  return (
-    <ul>
-      {data.results.map((person) => (
-        <li key={person.name}>{person.name}</li>
-      ))}
-    </ul>
-  )
-}
-```
-
-Loaders simplify your data fetching logic dramatically. Check out more information in the [Loader documentation](https://tanstack.com/router/latest/docs/framework/react/guide/data-loading#loader-parameters).
-
-
-# Demo files
-
-Files prefixed with `demo` can be safely deleted. They are there to provide a starting point for you to play around with the features you've installed.
-
-
-# Learn More
-
-You can learn more about all of the offerings from TanStack in the [TanStack documentation](https://tanstack.com).
-
-For TanStack Start specific documentation, visit [TanStack Start](https://tanstack.com/start).
+| Comando | Descrição |
+| --- | --- |
+| `npm run dev` | Inicia o servidor Vite de desenvolvimento na porta `3001`. |
+| `npm run build` | Gera a build com Vite. |
+| `npm run preview` | Serve a build usando Vite Preview. |
+| `npm start` | Executa `node server.js` para servir a build e a API Express. |
+| `pnpm test` | Executa `vitest run` por meio do script `test`. |
