@@ -1,5 +1,7 @@
 Welcome to your new TanStack Start app!
 
+O projeto está começando a adotar BDD (cenários Gherkin) para testes automatizados.
+
 # Getting Started
 
 To run this application:
